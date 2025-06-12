@@ -334,7 +334,7 @@ namespace McpUnity.Utils
             {
                 // Fallback to /bin/bash to find 'npm' in PATH
                 startInfo.FileName = "/bin/bash";
-                startInfo.Arguments = $"-c \"npm {arguments}\"";
+                startInfo.Arguments = $"-c -l \"npm {arguments}\"";
             }
 
             try
