@@ -4,12 +4,12 @@ FROM node:18-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Copy package files for dependency installation
-COPY package.json package-lock.json ./
+# Copy package file for dependency installation
+COPY package.json ./
 
 # Install dependencies with cache optimization
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci
+    npm install
 
 # Copy TypeScript configuration and source code
 COPY tsconfig.json ./
@@ -27,12 +27,12 @@ WORKDIR /app
 # Set production environment
 ENV NODE_ENV=production
 
-# Copy package files
-COPY package.json package-lock.json ./
+# Copy package file
+COPY package.json ./
 
 # Install production dependencies only
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --omit=dev
+    npm install --omit=dev
 
 # Copy built application from builder stage
 COPY --from=builder /app/build ./build
