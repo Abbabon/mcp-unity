@@ -443,9 +443,9 @@ namespace McpUnity.Utils
         /// <summary>
         /// Checks if a docker container with the specified name is running.
         /// </summary>
-        public static bool IsDockerContainerRunning(string containerName)
+        public static bool IsDockerContainerRunning(string workingDirectory, string containerName)
         {
-            string output = RunDockerCommand($"ps --filter name={containerName} --format {{.Names}}", Environment.CurrentDirectory);
+            string output = RunDockerCommand($"ps --filter name={containerName} --format {{.Names}}", workingDirectory);
             return output.Trim() == containerName;
         }
 
