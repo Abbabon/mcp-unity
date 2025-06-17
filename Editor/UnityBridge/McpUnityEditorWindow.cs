@@ -130,9 +130,17 @@ namespace McpUnity.Unity
                 settings.AutoStartServer = autoStartServer;
                 settings.SaveSettings();
             }
-            
+
             EditorGUILayout.Space();
-            
+
+            // Server run mode
+            McpUnitySettings.ServerMode newMode = (McpUnitySettings.ServerMode)EditorGUILayout.EnumPopup(new GUIContent("Server Mode", "Run the Node.js server locally or inside a Docker container"), settings.RunMode);
+            if (newMode != settings.RunMode)
+            {
+                settings.RunMode = newMode;
+                settings.SaveSettings();
+            }
+
             // Enable info logs toggle
             bool enableInfoLogs = EditorGUILayout.Toggle(new GUIContent("Enable Info Logs", "Show informational logs in the Unity console"), settings.EnableInfoLogs);
             if (enableInfoLogs != settings.EnableInfoLogs)

@@ -110,7 +110,7 @@ The following tools are available for manipulating and querying Unity scenes and
 
 ## Requirements
 - Unity 2022.3 or later - to [install the server](#install-server)
-- Node.js 18 or later - to [start the server](#start-server)
+- Node.js 18 or later **or** Docker Desktop - depending on your chosen server mode
 - npm 9 or later - to [debug the server](#debug-server)
 
 ## <a name="install-server"></a>Installation
@@ -127,8 +127,8 @@ Installing this MCP Unity Server is a multi-step process:
 ![package manager](https://github.com/user-attachments/assets/a72bfca4-ae52-48e7-a876-e99c701b0497)
 
 
-### Step 2: Install Node.js 
-> To run MCP Unity server, you'll need to have Node.js 18 or later installed on your computer:
+### Step 2a: Install Node.js (Local Mode)
+If you plan to run the server directly with Node.js, install Node.js 18 or later:
 
 <details>
 <summary><span style="font-size: 1.1em; font-weight: bold;">Windows</span></summary>
@@ -157,6 +157,16 @@ Installing this MCP Unity Server is a multi-step process:
    node --version
    ```
 </details>
+
+### Step 2b: Use Docker (Container Mode)
+Alternatively you can run the MCP server inside a Docker container.
+1. Install [Docker Desktop](https://www.docker.com/get-started/).
+2. From the project root run:
+   ```bash
+   ./build-docker.sh
+   ```
+   This builds the image and starts the container.
+3. Alternatively in Unity open **Tools > MCP Unity > Start Docker Server**.
 
 ### Step 3: Configure AI LLM Client
 
@@ -200,10 +210,14 @@ Open the MCP configuration file of your AI client (e.g. claude_desktop_config.js
 ## <a name="start-server"></a>Start Unity Editor MCP Server
 1. Open the Unity Editor
 2. Navigate to Tools > MCP Unity > Server Window
-3. Click "Start Server" to start the WebSocket server
-4. Open Claude Desktop or your AI Coding IDE (e.g. Cursor IDE, Windsurf IDE, etc.) and start executing Unity tools
+3. Choose the desired **Server Mode** (Local Node or Docker) in the Server Window.
+4. Click "Start Server" to start the WebSocket server
+   - When using Docker the container will be built and started automatically if needed.
+5. Open Claude Desktop or your AI Coding IDE (e.g. Cursor IDE, Windsurf IDE, etc.) and start executing Unity tools
    
 ![connect](https://github.com/user-attachments/assets/2e266a8b-8ba3-4902-b585-b220b11ab9a2)
+
+> The Docker container is automatically stopped when Unity closes.
 
 > When the AI client connects to the WebSocket server, it will automatically show in the green box in the window
 

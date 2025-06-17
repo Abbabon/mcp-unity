@@ -37,6 +37,15 @@ namespace McpUnity.Unity
         [Tooltip("Optional: Full path to the npm executable (e.g., /Users/user/.asdf/shims/npm or C:\\path\\to\\npm.cmd). If not set, 'npm' from the system PATH will be used.")]
         public string NpmExecutablePath = string.Empty;
 
+        public enum ServerMode
+        {
+            Local,
+            Docker
+        }
+
+        [Tooltip("Choose whether to run the MCP server locally with Node.js or inside a Docker container")]
+        public ServerMode RunMode = ServerMode.Local;
+
         /// <summary>
         /// Singleton instance of settings
         /// </summary>

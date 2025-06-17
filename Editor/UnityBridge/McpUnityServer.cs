@@ -29,6 +29,7 @@ namespace McpUnity.Unity
         private CancellationTokenSource _cts;
         private TestRunnerService _testRunnerService;
         private ConsoleLogsService _consoleLogsService;
+        private Process _nodeProcess;
 
         /// <summary>
         /// Static constructor that gets called when Unity loads due to InitializeOnLoad attribute
@@ -88,9 +89,17 @@ namespace McpUnity.Unity
         public void StartServer()
         {
             if (IsListening) return;
-            
+
             try
             {
+                if (McpUnitySettings.Instance.RunMode == McpUnitySettings.ServerMode.Docker)
+                {
+                    StartDockerServer();
+                }
+                else
+                {
+                    StartLocalNodeServer();
+                }
                 // Create a new WebSocket server
                 _webSocketServer = new WebSocketServer($"ws://localhost:{McpUnitySettings.Instance.Port}");
                 // Add the MCP service endpoint with a handler that references this server
@@ -117,7 +126,16 @@ namespace McpUnity.Unity
             try
             {
                 _webSocketServer?.Stop();
-                
+
+                if (McpUnitySettings.Instance.RunMode == McpUnitySettings.ServerMode.Docker)
+                {
+                    StopDockerServer();
+                }
+                else
+                {
+                    StopLocalNodeServer();
+                }
+
                 McpLogger.LogInfo("WebSocket server stopped");
             }
             catch (Exception ex)
@@ -167,6 +185,99 @@ namespace McpUnity.Unity
             {
                 McpUtils.RunNpmCommand("run build", serverPath);
             }
+        }
+
+        /// <summary>
+        /// Build the Docker image and start the container if necessary.
+        /// </summary>
+        public void StartDockerServer()
+        {
+            string serverPath = McpUtils.GetServerPath();
+            if (string.IsNullOrEmpty(serverPath) || !Directory.Exists(serverPath))
+            {
+                McpLogger.LogError($"Server path not found or invalid: {serverPath}. Cannot start Docker container.");
+                return;
+            }
+
+            McpUtils.BuildDockerImage(serverPath);
+            McpUtils.StartDockerContainer(serverPath, "mcp-unity-server");
+        }
+
+        /// <summary>
+        /// Start the Node.js server locally using the installed Node runtime.
+        /// </summary>
+        public void StartLocalNodeServer()
+        {
+            string serverPath = McpUtils.GetServerPath();
+            if (string.IsNullOrEmpty(serverPath) || !Directory.Exists(serverPath))
+            {
+                McpLogger.LogError($"Server path not found or invalid: {serverPath}. Cannot start Node.js server.");
+                return;
+            }
+
+            ProcessStartInfo startInfo = new ProcessStartInfo
+            {
+                FileName = "node",
+                Arguments = Path.Combine(serverPath, "build", "index.js"),
+                WorkingDirectory = serverPath,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            try
+            {
+                _nodeProcess = Process.Start(startInfo);
+                if (_nodeProcess == null)
+                {
+                    McpLogger.LogError("Failed to start Node.js process.");
+                }
+            }
+            catch (Exception ex)
+            {
+                McpLogger.LogError($"Failed to start Node.js server: {ex.Message}");
+            }
+        }
+
+        [MenuItem("Tools/MCP Unity/Start Docker Server")]
+        private static void MenuStartDockerServer()
+        {
+            Instance.StartDockerServer();
+        }
+
+        /// <summary>
+        /// Stop the Docker container if it is running.
+        /// </summary>
+        public void StopDockerServer()
+        {
+            McpUtils.StopDockerContainer("mcp-unity-server");
+        }
+
+        /// <summary>
+        /// Stop the locally running Node.js server.
+        /// </summary>
+        public void StopLocalNodeServer()
+        {
+            if (_nodeProcess != null && !_nodeProcess.HasExited)
+            {
+                try
+                {
+                    _nodeProcess.Kill();
+                    _nodeProcess.WaitForExit();
+                }
+                catch (Exception ex)
+                {
+                    McpLogger.LogError($"Error stopping Node.js server: {ex.Message}");
+                }
+            }
+            _nodeProcess = null;
+        }
+
+        [MenuItem("Tools/MCP Unity/Stop Docker Server")]
+        private static void MenuStopDockerServer()
+        {
+            Instance.StopDockerServer();
         }
         
         /// <summary>

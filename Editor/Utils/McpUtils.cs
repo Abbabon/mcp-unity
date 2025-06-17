@@ -368,5 +368,107 @@ namespace McpUnity.Utils
                 Debug.LogError($"[MCP Unity] Exception while running npm {arguments} in {workingDirectory}. Error: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Runs a docker command in the specified working directory and
+        /// returns the standard output.
+        /// </summary>
+        /// <param name="arguments">Arguments to pass to docker.</param>
+        /// <param name="workingDirectory">The working directory where the docker command should be executed.</param>
+        /// <returns>The standard output of the docker command.</returns>
+        public static string RunDockerCommand(string arguments, string workingDirectory)
+        {
+            System.Diagnostics.ProcessStartInfo startInfo = new System.Diagnostics.ProcessStartInfo
+            {
+                WorkingDirectory = workingDirectory,
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            if (Application.platform == RuntimePlatform.WindowsEditor)
+            {
+                startInfo.FileName = "cmd.exe";
+                startInfo.Arguments = $"/c docker {arguments}";
+            }
+            else
+            {
+                startInfo.FileName = "/bin/bash";
+                startInfo.Arguments = $"-c \"docker {arguments}\"";
+            }
+
+            try
+            {
+                using (var process = System.Diagnostics.Process.Start(startInfo))
+                {
+                    if (process == null)
+                    {
+                        Debug.LogError($"[MCP Unity] Failed to start docker process with arguments: {arguments} in {workingDirectory}. Process object is null.");
+                        return string.Empty;
+                    }
+
+                    string output = process.StandardOutput.ReadToEnd();
+                    string error = process.StandardError.ReadToEnd();
+
+                    process.WaitForExit();
+
+                    if (process.ExitCode == 0)
+                    {
+                        Debug.Log($"[MCP Unity] docker {arguments} completed successfully in {workingDirectory}.\n{output}");
+                    }
+                    else
+                    {
+                        Debug.LogError($"[MCP Unity] docker {arguments} failed in {workingDirectory}. Exit Code: {process.ExitCode}. Error: {error}");
+                    }
+
+                    return output;
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[MCP Unity] Exception while running docker {arguments} in {workingDirectory}. Error: {ex.Message}");
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Builds the Docker image for the MCP Unity server.
+        /// </summary>
+        public static void BuildDockerImage(string workingDirectory)
+        {
+            RunDockerCommand("build -t mcp-unity-server .", workingDirectory);
+        }
+
+        /// <summary>
+        /// Checks if a docker container with the specified name is running.
+        /// </summary>
+        public static bool IsDockerContainerRunning(string containerName)
+        {
+            string output = RunDockerCommand($"ps --filter name={containerName} --format {{.Names}}", Environment.CurrentDirectory);
+            return output.Trim() == containerName;
+        }
+
+        /// <summary>
+        /// Starts the docker container if it is not already running.
+        /// </summary>
+        public static void StartDockerContainer(string workingDirectory, string containerName)
+        {
+            if (!IsDockerContainerRunning(containerName))
+            {
+                RunDockerCommand($"run -d --rm --name {containerName} -p 8090:8090 mcp-unity-server", workingDirectory);
+            }
+        }
+
+        /// <summary>
+        /// Stops the docker container if it is running.
+        /// </summary>
+        public static void StopDockerContainer(string containerName)
+        {
+            if (IsDockerContainerRunning(containerName))
+            {
+                RunDockerCommand($"stop {containerName}", Environment.CurrentDirectory);
+            }
+        }
     }
 }
