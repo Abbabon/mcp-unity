@@ -1,6 +1,6 @@
 // Import MCP SDK components
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { HttpServerTransport } from '@modelcontextprotocol/sdk/server/http.js';
 import { McpUnity } from './unity/mcpUnity.js';
 import { Logger, LogLevel } from './utils/logger.js';
 import { registerMenuItemTool } from './tools/menuItemTool.js';
@@ -20,6 +20,8 @@ import { registerGetAssetsResource } from './resources/getAssetsResource.js';
 import { registerGetTestsResource } from './resources/getTestsResource.js';
 import { registerGetGameObjectResource } from './resources/getGameObjectResource.js';
 import { registerGameObjectHandlingPrompt } from './prompts/gameobjectHandlingPrompt.js';
+import express from 'express';
+import cors from 'cors';
 
 // Initialize loggers
 const serverLogger = new Logger('Server', LogLevel.INFO);
@@ -28,7 +30,7 @@ const toolLogger = new Logger('Tools', LogLevel.INFO);
 const resourceLogger = new Logger('Resources', LogLevel.INFO);
 
 // Initialize the MCP server
-const server = new McpServer (
+const server = new McpServer(
   {
     name: "MCP Unity Server",
     version: "1.0.0"
@@ -71,19 +73,28 @@ registerGameObjectHandlingPrompt(server);
 // Server startup function
 async function startServer() {
   try {
-    // Initialize STDIO transport for MCP client communication
-    const stdioTransport = new StdioServerTransport();
+    // Create Express app
+    const app = express();
+    
+    // Enable CORS
+    app.use(cors());
+    
+    // Initialize HTTP transport for MCP client communication
+    const httpTransport = new HttpServerTransport(app);
     
     // Connect the server to the transport
-    await server.connect(stdioTransport);
+    await server.connect(httpTransport);
 
-    serverLogger.info('MCP Server started');
+    // Start the HTTP server
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => {
+      serverLogger.info(`MCP Server started on http://localhost:${port}`);
+    });
     
     // Get the client name from the MCP server
     const clientName = server.server.getClientVersion()?.name || 'Unknown MCP Client';
     serverLogger.info(`Connected MCP client: ${clientName}`);
-    
-    // Start Unity Bridge connection with client name in headers
+
     await mcpUnity.start(clientName);
     
   } catch (error) {

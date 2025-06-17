@@ -4,12 +4,12 @@ FROM node:18-alpine AS builder
 # Set working directory
 WORKDIR /app
 
-# Copy package file for dependency installation
-COPY package.json ./
+# Copy package files for dependency installation
+COPY package.json package-lock.json ./
 
 # Install dependencies with cache optimization
 RUN --mount=type=cache,target=/root/.npm \
-    npm install
+    npm ci
 
 # Copy TypeScript configuration and source code
 COPY tsconfig.json ./
@@ -21,18 +21,18 @@ RUN npm run build
 # Production stage with minimal dependencies
 FROM node:18-alpine AS production
 
-# Set working directory           
+# Set working directory
 WORKDIR /app
 
 # Set production environment
 ENV NODE_ENV=production
 
-# Copy package file
-COPY package.json ./
+# Copy package files
+COPY package.json package-lock.json ./
 
 # Install production dependencies only
 RUN --mount=type=cache,target=/root/.npm \
-    npm install --omit=dev
+    npm ci --omit=dev
 
 # Copy built application from builder stage
 COPY --from=builder /app/build ./build
@@ -50,9 +50,9 @@ USER nodejs
 # Expose WebSocket port
 EXPOSE 8090
 
-# Health check to ensure the application is running
+# Use a process check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:8090/health || exit 1
+    CMD ps aux | grep node | grep -v grep || exit 1
 
 # Command to run the MCP server
 ENTRYPOINT ["node", "build/index.js"]

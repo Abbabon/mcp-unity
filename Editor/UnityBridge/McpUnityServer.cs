@@ -91,6 +91,13 @@ namespace McpUnity.Unity
 
             try
             {
+                // Create a new WebSocket server
+                _webSocketServer = new WebSocketServer($"ws://0.0.0.0:{McpUnitySettings.Instance.Port}");
+                // Add the MCP service endpoint with a handler that references this server
+                _webSocketServer.AddWebSocketService("/McpUnity", () => new McpUnitySocketHandler(this));
+                // Start the server
+                _webSocketServer.Start();
+                
                 if (McpUnitySettings.Instance.RunMode == McpUnitySettings.ServerMode.Docker)
                 {
                     StartDockerServer();
@@ -99,13 +106,6 @@ namespace McpUnity.Unity
                 {
                     StartLocalNodeServer();
                 }
-                // Create a new WebSocket server
-                _webSocketServer = new WebSocketServer($"ws://localhost:{McpUnitySettings.Instance.Port}");
-                // Add the MCP service endpoint with a handler that references this server
-                _webSocketServer.AddWebSocketService("/McpUnity", () => new McpUnitySocketHandler(this));
-                
-                // Start the server
-                _webSocketServer.Start();
                 
                 McpLogger.LogInfo($"WebSocket server started on port {McpUnitySettings.Instance.Port}");
             }
