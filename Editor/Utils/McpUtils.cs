@@ -17,6 +17,9 @@ namespace McpUnity.Utils
     /// </summary>
     public static class McpUtils
     {
+        // Shared constants for container name
+        public const string DockerContainerName = "mcp-unity-server";
+
         /// <summary>
         /// Generates the MCP configuration JSON to setup the Unity MCP server in different AI Clients
         /// </summary>
@@ -395,7 +398,7 @@ namespace McpUnity.Utils
             else
             {
                 startInfo.FileName = "/bin/bash";
-                startInfo.Arguments = $"-c \"docker {arguments}\"";
+                startInfo.Arguments = $"-c -l \"docker {arguments}\"";
             }
 
             try
@@ -452,22 +455,22 @@ namespace McpUnity.Utils
         /// <summary>
         /// Starts the docker container if it is not already running.
         /// </summary>
-        public static void StartDockerContainer(string workingDirectory, string containerName)
+        public static void StartDockerContainer(string workingDirectory, string containerName, int port)
         {
-            if (!IsDockerContainerRunning(containerName))
+            if (!IsDockerContainerRunning(workingDirectory, containerName))
             {
-                RunDockerCommand($"run -d --rm --name {containerName} -p 8090:8090 mcp-unity-server", workingDirectory);
+                RunDockerCommand($"run -d --rm --name {containerName} -p {port}:{port} {DockerContainerName}", workingDirectory);
             }
         }
 
         /// <summary>
         /// Stops the docker container if it is running.
         /// </summary>
-        public static void StopDockerContainer(string containerName)
+        public static void StopDockerContainer(string workingDirectory, string containerName)
         {
-            if (IsDockerContainerRunning(containerName))
+            if (IsDockerContainerRunning(workingDirectory, containerName))
             {
-                RunDockerCommand($"stop {containerName}", Environment.CurrentDirectory);
+                RunDockerCommand($"stop {containerName}", workingDirectory);
             }
         }
     }

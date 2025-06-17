@@ -21,7 +21,7 @@ RUN npm run build
 # Production stage with minimal dependencies
 FROM node:18-alpine AS production
 
-# Set working directory
+# Set working directory           
 WORKDIR /app
 
 # Set production environment

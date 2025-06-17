@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Threading;
-using UnityEngine;
 using UnityEditor;
 using McpUnity.Tools;
 using McpUnity.Resources;
@@ -192,7 +191,7 @@ namespace McpUnity.Unity
         /// </summary>
         public void StartDockerServer()
         {
-            string serverPath = McpUtils.GetServerPath();
+            var serverPath = McpUtils.GetServerPath();
             if (string.IsNullOrEmpty(serverPath) || !Directory.Exists(serverPath))
             {
                 McpLogger.LogError($"Server path not found or invalid: {serverPath}. Cannot start Docker container.");
@@ -200,7 +199,16 @@ namespace McpUnity.Unity
             }
 
             McpUtils.BuildDockerImage(serverPath);
-            McpUtils.StartDockerContainer(serverPath, "mcp-unity-server");
+            McpUtils.StartDockerContainer(serverPath, McpUtils.DockerContainerName, McpUnitySettings.Instance.Port);
+        }
+
+        /// <summary>
+        /// Stop the Docker container if it is running.
+        /// </summary>
+        public void StopDockerServer()
+        {
+            var serverPath = McpUtils.GetServerPath();
+            McpUtils.StopDockerContainer(serverPath, McpUtils.DockerContainerName);
         }
 
         /// <summary>
@@ -228,11 +236,18 @@ namespace McpUnity.Unity
 
             try
             {
-                _nodeProcess = Process.Start(startInfo);
-                if (_nodeProcess == null)
+                _nodeProcess = new Process { StartInfo = startInfo, EnableRaisingEvents = true };
+                _nodeProcess.OutputDataReceived += OnNodeProcessOutputDataReceived;
+                _nodeProcess.ErrorDataReceived += OnNodeProcessErrorDataReceived;
+                _nodeProcess.Exited += OnNodeProcessExited;
+
+                if (!_nodeProcess.Start())
                 {
                     McpLogger.LogError("Failed to start Node.js process.");
+                    return;
                 }
+                _nodeProcess.BeginOutputReadLine();
+                _nodeProcess.BeginErrorReadLine();
             }
             catch (Exception ex)
             {
@@ -240,18 +255,34 @@ namespace McpUnity.Unity
             }
         }
 
+        private void OnNodeProcessOutputDataReceived(object sender, DataReceivedEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(e.Data))
+            {
+                McpLogger.LogInfo($"[Node.js] {e.Data}");   
+            }
+        }
+
+        private void OnNodeProcessErrorDataReceived(object sender, DataReceivedEventArgs e)
+        {
+            if (!string.IsNullOrEmpty(e.Data))
+            {
+                McpLogger.LogError($"[Node.js] {e.Data}");   
+            }
+        }
+
+        private void OnNodeProcessExited(object sender, EventArgs e)
+        {
+            if (_nodeProcess != null)
+            {
+                McpLogger.LogInfo($"Node.js process exited with code {_nodeProcess.ExitCode}");
+            }
+        }
+
         [MenuItem("Tools/MCP Unity/Start Docker Server")]
         private static void MenuStartDockerServer()
         {
             Instance.StartDockerServer();
-        }
-
-        /// <summary>
-        /// Stop the Docker container if it is running.
-        /// </summary>
-        public void StopDockerServer()
-        {
-            McpUtils.StopDockerContainer("mcp-unity-server");
         }
 
         /// <summary>
