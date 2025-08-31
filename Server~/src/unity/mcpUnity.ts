@@ -100,7 +100,11 @@ export class McpUnity {
     this.disconnect();
     
     return new Promise<void>((resolve, reject) => {
-      const wsUrl = `ws://localhost:${this.port}/McpUnity`;
+
+      const wsHost = process.env.UNITY_WS_HOST || 'host.docker.internal';
+      const wsPort = process.env.UNITY_WS_PORT || 8090;
+      const wsUrl = `ws://${wsHost}:${wsPort}/McpUnity`;
+      
       this.logger.debug(`Connecting to ${wsUrl}...`);
       
       // Create connection options with headers for client identification
